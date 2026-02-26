@@ -1,0 +1,47 @@
+{
+  "name": "fudo-i18n-core",
+  "version": "1.0.0",
+  "description": "Framework-agnostic i18n core wrapper built on top of i18next",
+  "private": false,
+  "license": "MIT",
+  "author": "lxqswing <lxqswing@163.com>",
+  "keywords": [
+    "i18n",
+    "i18next",
+    "internationalization",
+    "icu",
+    "locales"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lxqswing/get-customers.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "i18next": "^23.0.0"
+  },
+  "dependencies": {
+    "i18next-icu": "^2.0.0",
+    "i18next-http-backend": "^2.0.0"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "rollup": "^3.0.0",
+    "rollup-plugin-typescript2": "^0.34.0",
+    "typescript": "^5.0.0"
+  }
+}
