@@ -1,11 +1,11 @@
-// lifecycle hooks (simple placeholders)
-export type Hook = (payload?: any) => void
+export class Lifecycle {
+  private initialized = false;
 
-export const hooks = {
-  beforeInit: [] as Hook[],
-  afterInit: [] as Hook[]
-}
+  isInitialized() {
+    return this.initialized;
+  }
 
-export function on(hookName: keyof typeof hooks, fn: Hook) {
-  hooks[hookName].push(fn)
+  markInitialized() {
+    this.initialized = true;
+  }
 }

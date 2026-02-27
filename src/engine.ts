@@ -1,38 +1,40 @@
-import i18next from 'i18next'
-export class I18nextEngine {
+import i18next from "i18next";
+import ICU from "i18next-icu";
+import HttpBackend from "i18next-http-backend";
+import { I18nEngine } from "./types";
+
+export class I18nextEngine implements I18nEngine {
   async init(config: any) {
-    // attach plugins and initialize
-    // load optional plugins dynamically to avoid bundlers parsing ESM .d.mts files
-    try {
-      const pkg = 'i18next-icu'
-      const icuMod: any = await import(pkg)
-      const ICU = icuMod && (icuMod.default || icuMod)
-      if (ICU) i18next.use(ICU)
-    } catch (e) {
-      // plugin not available; continue
-    }
-
-    try {
-      const pkg2 = 'i18next-http-backend'
-      const backendMod: any = await import(pkg2)
-      const HttpBackend = backendMod && (backendMod.default || backendMod)
-      if (HttpBackend) i18next.use(HttpBackend)
-    } catch (e) {
-      // backend plugin not available; continue
-    }
-
-    await i18next.init(config)
+    await i18next
+      .use(ICU)
+      .use(HttpBackend)
+      .init({
+        ...config,
+        interpolation: {
+          escapeValue: false,
+        },
+      });
   }
 
-  t(key: string, options?: any): any {
-    return i18next.t(key, options)
+  t(key: string, options?: any) {
+    return i18next.t(key, options);
   }
 
   async changeLanguage(locale: string) {
-    await i18next.changeLanguage(locale)
+    await i18next.changeLanguage(locale);
   }
 
   getLanguage() {
-    return i18next.language
+    return i18next.language;
+  }
+
+  async loadNamespaces(ns: string | string[]) {
+    // 修复：使用 Promise 版本（兼容类型，避免回调参数错误）
+    await new Promise((resolve, reject) => {
+      i18next.loadNamespaces(ns, (err) => {
+        if (err) reject(err);
+        else resolve(void 0);
+      });
+    });
   }
 }

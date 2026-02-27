@@ -1,10 +1,13 @@
-export interface Plugin {
-  name: string
-  setup?(core: any): void
-}
+import { I18nPlugin } from "./types";
 
-export const plugins: Plugin[] = []
+export class PluginSystem {
+  private plugins: I18nPlugin[] = [];
 
-export function usePlugin(p: Plugin) {
-  plugins.push(p)
+  use(plugin: I18nPlugin) {
+    this.plugins.push(plugin);
+  }
+
+  apply(core: any) {
+    this.plugins.forEach((p) => p.setup(core));
+  }
 }

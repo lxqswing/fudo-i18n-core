@@ -1,15 +1,15 @@
-import { createI18n } from './index'
+import { createI18n } from "./index";
 
-const GLOBAL_KEY = '__FUDO_I18N__'
+const GLOBAL_KEY = "__COMPANY_I18N__";
 
-export function getClientI18n(): any {
-  if (typeof window === 'undefined') {
-    throw new Error('getClientI18n must be called in browser')
+export function getClientI18n() {
+  if (typeof window === "undefined") {
+    throw new Error("Client i18n cannot be used on server");
   }
 
-  const w = window as any
-  if (!w[GLOBAL_KEY]) {
-    w[GLOBAL_KEY] = createI18n()
+  if (!(window as any)[GLOBAL_KEY]) {
+    (window as any)[GLOBAL_KEY] = createI18n();
   }
-  return w[GLOBAL_KEY]
+
+  return (window as any)[GLOBAL_KEY];
 }
