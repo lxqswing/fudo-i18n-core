@@ -23,7 +23,8 @@ export class I18nCore {
       lng: config.defaultLocale,
       fallbackLng: config.defaultLocale,
       supportedLngs: config.supportedLocales,
-      ns: config.namespaces,
+      ns: config.namespaces || ["common"],
+      defaultNS: config.namespaces?.[0] || "common",
       preload: config.preload,
       backend: config.backend,
     });
@@ -34,12 +35,6 @@ export class I18nCore {
   }
 
   t(key: string, options?: any) {
-    const ns = resolveNamespace(key);
-
-    if (!this.resources.isLoaded(ns)) {
-      this.loadNamespace(ns);
-    }
-
     return this.engine.t(key, options);
   }
 
@@ -49,7 +44,17 @@ export class I18nCore {
     }
 
     await this.engine.changeLanguage(locale);
+
+    // 关键：清空已加载标记，让下次 t() 重新加载
     this.resources.clear();
+
+    // 自动重新加载当前已经用过的 namespace（否则不刷新）
+    // 修复：给 ResourceManager 添加 getLoadedNamespaces 方法，避免直接访问私有属性
+    const loadedNamespaces = this.resources.getLoadedNamespaces();
+    for (const ns of loadedNamespaces) {
+      await this.loadNamespace(ns);
+    }
+
     this.emitter.emit("localeChanged", locale);
   }
 

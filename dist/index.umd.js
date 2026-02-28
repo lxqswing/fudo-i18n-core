@@ -4,12 +4,30 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.I18nCore = {}, global.i18next, global.i18nextICU, global.i18nextHttpBackend));
 })(this, (function (exports, i18next, ICU, HttpBackend) { 'use strict';
 
+    let FsBackend;
     class I18nextEngine {
+        constructor() {
+            // 修复：每个引擎实例创建独立的 i18next 实例
+            this.instance = i18next.createInstance();
+        }
         async init(config) {
-            await i18next
-                .use(ICU)
-                .use(HttpBackend)
-                .init({
+            if (typeof window === "undefined") {
+                // Node 环境：直接 require fs-backend（最稳定）
+                try {
+                    FsBackend = require("i18next-fs-backend");
+                    this.instance.use(FsBackend); // 修复：使用私有实例
+                }
+                catch (err) {
+                    throw new Error("Cannot find module 'i18next-fs-backend'. Please install it via npm.");
+                }
+            }
+            else {
+                // 浏览器环境使用 http-backend
+                this.instance.use(HttpBackend); // 修复：使用私有实例
+            }
+            // 公共插件：ICU 支持
+            this.instance.use(ICU); // 修复：使用私有实例
+            await this.instance.init({
                 ...config,
                 interpolation: {
                     escapeValue: false,
@@ -17,23 +35,17 @@
             });
         }
         t(key, options) {
-            return i18next.t(key, options);
+            return this.instance.t(key, options); // 修复：使用私有实例
         }
         async changeLanguage(locale) {
-            await i18next.changeLanguage(locale);
+            await this.instance.changeLanguage(locale); // 修复：使用私有实例
         }
         getLanguage() {
-            return i18next.language;
+            return this.instance.language; // 修复：使用私有实例
         }
         async loadNamespaces(ns) {
-            // 修复：使用 Promise 版本（兼容类型，避免回调参数错误）
             await new Promise((resolve, reject) => {
-                i18next.loadNamespaces(ns, (err) => {
-                    if (err)
-                        reject(err);
-                    else
-                        resolve(void 0);
-                });
+                this.instance.loadNamespaces(ns, (err) => err ? reject(err) : resolve()); // 修复：使用私有实例
             });
         }
     }
@@ -48,7 +60,8 @@
             this.events[event].push(callback);
         }
         off(event, callback) {
-            this.events[event] = this.events[event]?.filter((fn) => fn !== callback);
+            var _a;
+            this.events[event] = (_a = this.events[event]) === null || _a === void 0 ? void 0 : _a.filter((fn) => fn !== callback);
         }
         once(event, callback) {
             const wrapper = (...args) => {
@@ -58,7 +71,8 @@
             this.on(event, wrapper);
         }
         emit(event, ...args) {
-            this.events[event]?.forEach((fn) => fn(...args));
+            var _a;
+            (_a = this.events[event]) === null || _a === void 0 ? void 0 : _a.forEach((fn) => fn(...args));
         }
     }
 
@@ -75,10 +89,9 @@
         clear() {
             this.loaded.clear();
         }
-    }
-
-    function resolveNamespace(key) {
-        return key.split(".")[0];
+        getLoadedNamespaces() {
+            return Array.from(this.loaded);
+        }
     }
 
     class Lifecycle {
@@ -114,6 +127,7 @@
             this.plugins = new PluginSystem();
         }
         async init(config) {
+            var _a;
             if (this.lifecycle.isInitialized())
                 return;
             this.config = config;
@@ -121,7 +135,8 @@
                 lng: config.defaultLocale,
                 fallbackLng: config.defaultLocale,
                 supportedLngs: config.supportedLocales,
-                ns: config.namespaces,
+                ns: config.namespaces || ["common"],
+                defaultNS: ((_a = config.namespaces) === null || _a === void 0 ? void 0 : _a[0]) || "common",
                 preload: config.preload,
                 backend: config.backend,
             });
@@ -130,10 +145,6 @@
             this.emitter.emit("ready");
         }
         t(key, options) {
-            const ns = resolveNamespace(key);
-            if (!this.resources.isLoaded(ns)) {
-                this.loadNamespace(ns);
-            }
             return this.engine.t(key, options);
         }
         async setLocale(locale) {
@@ -141,7 +152,14 @@
                 throw new Error(`Unsupported locale: ${locale}`);
             }
             await this.engine.changeLanguage(locale);
+            // 关键：清空已加载标记，让下次 t() 重新加载
             this.resources.clear();
+            // 自动重新加载当前已经用过的 namespace（否则不刷新）
+            // 修复：给 ResourceManager 添加 getLoadedNamespaces 方法，避免直接访问私有属性
+            const loadedNamespaces = this.resources.getLoadedNamespaces();
+            for (const ns of loadedNamespaces) {
+                await this.loadNamespace(ns);
+            }
             this.emitter.emit("localeChanged", locale);
         }
         getLocale() {
@@ -165,11 +183,33 @@
         }
     }
 
+    const GLOBAL_KEY = "__FUDO_I18N__";
+    function getClientI18n() {
+        if (typeof window === "undefined") {
+            throw new Error("getClientI18n must run in browser");
+        }
+        if (!window[GLOBAL_KEY]) {
+            window[GLOBAL_KEY] = new I18nCore();
+        }
+        return window[GLOBAL_KEY];
+    }
+    /**
+     * SSR/Server 安全版本
+     * 每次请求返回独立实例
+     */
+    function createI18nInstance() {
+        return new I18nCore();
+    }
+
+    // index.ts
     function createI18n() {
         return new I18nCore();
     }
 
+    exports.I18nCore = I18nCore;
     exports.createI18n = createI18n;
+    exports.createI18nInstance = createI18nInstance;
+    exports.getClientI18n = getClientI18n;
 
 }));
 //# sourceMappingURL=index.umd.js.map

@@ -12,4 +12,8 @@ export class ResourceManager {
   clear() {
     this.loaded.clear();
   }
+
+  getLoadedNamespaces() {
+    return Array.from(this.loaded);
+  }
 }

@@ -1,15 +1,22 @@
-import { createI18n } from "./index";
+import { I18nCore } from "./core";
 
-const GLOBAL_KEY = "__COMPANY_I18N__";
+const GLOBAL_KEY = "__FUDO_I18N__";
 
 export function getClientI18n() {
   if (typeof window === "undefined") {
-    throw new Error("Client i18n cannot be used on server");
+    throw new Error("getClientI18n must run in browser");
   }
 
   if (!(window as any)[GLOBAL_KEY]) {
-    (window as any)[GLOBAL_KEY] = createI18n();
+    (window as any)[GLOBAL_KEY] = new I18nCore();
   }
 
-  return (window as any)[GLOBAL_KEY];
+  return (window as any)[GLOBAL_KEY] as I18nCore;
+}
+/**
+ * SSR/Server 安全版本
+ * 每次请求返回独立实例
+ */
+export function createI18nInstance() {
+  return new I18nCore();
 }
